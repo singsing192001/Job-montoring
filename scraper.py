@@ -64,17 +64,17 @@ def fetch_jobs() -> list[dict]:
 
         for row in rows:
             cells = row.query_selector_all("td")
-            if len(cells) < 6:
+            if len(cells) < 7:
                 continue
             job = {
-                "issue_date":   cells[0].inner_text().strip(),
-                "vnc_no":       cells[1].inner_text().strip(),
-                "post":         cells[2].inner_text().strip(),
-                "closing_date": cells[3].inner_text().strip(),
-                "staff_group":  cells[4].inner_text().strip(),
-                "cluster":      cells[5].inner_text().strip(),
+                "issue_date":   cells[1].inner_text().strip(),
+                "vnc_no":       cells[2].inner_text().strip(),
+                "post":         cells[3].inner_text().strip(),
+                "closing_date": cells[4].inner_text().strip(),
+                "staff_group":  cells[5].inner_text().strip(),
+                "cluster":      cells[6].inner_text().strip(),
             }
-            link_el = cells[2].query_selector("a")
+            link_el = cells[3].query_selector("a")
             job["url"] = link_el.get_attribute("href") if link_el else URL
             if job["url"] and not job["url"].startswith("http"):
                 job["url"] = "https://www3.ha.org.hk" + job["url"]
