@@ -1,6 +1,6 @@
-# HA Job Monitor 🏥
+# Job Monitor 🏥
 
-Automatically checks the [HA Careers Allied Health page](https://www3.ha.org.hk/career/?lang=en&category=alliedhealth) twice a day and emails you when a new pharmacist job appears.
+Automatically checks the job listing twice a day and emails you when a certain new job appears.
 
 Runs entirely on **GitHub Actions** — free forever, no credit card, no server needed.
 
