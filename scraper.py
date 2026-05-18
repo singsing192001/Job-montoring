@@ -1,5 +1,6 @@
 import os
 import json
+import time
 import smtplib
 import logging
 from datetime import datetime
@@ -14,12 +15,12 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
-# ── Config (set via environment variables) ─────────────────────────────────────
+# ── Config ─────────────────────────────────────────────────────────────────────
 URL          = "https://www3.ha.org.hk/career/?lang=en&category=alliedhealth"
-GMAIL_USER   = os.environ["GMAIL_USER"]      # your Gmail address
-GMAIL_PASS   = os.environ["GMAIL_PASS"]      # your Gmail App Password
-NOTIFY_EMAIL = os.environ["NOTIFY_EMAIL"]    # who to notify (can be same as GMAIL_USER)
-KEYWORD      = os.environ.get("KEYWORD", "").strip().lower()  # optional filter, e.g. "physiotherapist"
+GMAIL_USER   = os.environ["GMAIL_USER"]
+GMAIL_PASS   = os.environ["GMAIL_PASS"]
+NOTIFY_EMAIL = os.environ["NOTIFY_EMAIL"]
+KEYWORD      = os.environ.get("KEYWORD", "").strip().lower()
 STATE_FILE   = "seen_jobs.json"
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
@@ -37,7 +38,6 @@ def save_seen_jobs(jobs: set) -> None:
 
 
 def fetch_jobs() -> list[dict]:
-    """Scrape the HA careers page and return a list of job dicts."""
     jobs = []
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
@@ -45,14 +45,27 @@ def fetch_jobs() -> list[dict]:
         log.info("Loading %s …", URL)
         page.goto(URL, wait_until="networkidle", timeout=60_000)
 
-        # Wait for the jobs table to appear
-        page.wait_for_selector("table", timeout=30_000)
+        # Wait for table rows with actual data (td elements inside the table)
+        log.info("Waiting for job rows to appear…")
+        try:
+            page.wait_for_selector("table td", timeout=30_000)
+        except Exception:
+            log.warning("Timed out waiting for table rows — page may be empty")
+
+        # Extra buffer to let JS finish rendering
+        time.sleep(3)
+
+        # Log raw HTML around the table for debugging
+        table_html = page.inner_html("table") if page.query_selector("table") else "NO TABLE FOUND"
+        log.info("Table HTML (first 500 chars): %s", table_html[:500])
 
         rows = page.query_selector_all("table tr")
+        log.info("Found %d table rows total", len(rows))
+
         for row in rows:
             cells = row.query_selector_all("td")
             if len(cells) < 6:
-                continue  # skip header / empty rows
+                continue
             job = {
                 "issue_date":   cells[0].inner_text().strip(),
                 "vnc_no":       cells[1].inner_text().strip(),
@@ -61,11 +74,11 @@ def fetch_jobs() -> list[dict]:
                 "staff_group":  cells[4].inner_text().strip(),
                 "cluster":      cells[5].inner_text().strip(),
             }
-            # Try to grab a link if available
             link_el = cells[2].query_selector("a")
             job["url"] = link_el.get_attribute("href") if link_el else URL
             if job["url"] and not job["url"].startswith("http"):
                 job["url"] = "https://www3.ha.org.hk" + job["url"]
+            log.info("Found job: %s", job["post"])
             jobs.append(job)
 
         browser.close()
@@ -75,14 +88,13 @@ def fetch_jobs() -> list[dict]:
 
 def matches_keyword(job: dict) -> bool:
     if not KEYWORD:
-        return True  # no filter → all jobs match
+        return True
     return KEYWORD in job["post"].lower()
 
 
 def send_email(new_jobs: list[dict]) -> None:
     subject = f"[HA Careers] {len(new_jobs)} new job(s) posted!"
 
-    # Plain-text body
     lines = [f"New job posting(s) on HA Careers ({datetime.now().strftime('%Y-%m-%d %H:%M')}):\n"]
     for j in new_jobs:
         lines.append(f"• {j['post']}")
@@ -93,7 +105,6 @@ def send_email(new_jobs: list[dict]) -> None:
     lines.append("—\nThis alert was sent by your HA Job Monitor.")
     text_body = "\n".join(lines)
 
-    # HTML body
     rows_html = ""
     for j in new_jobs:
         rows_html += f"""
