@@ -23,7 +23,7 @@ Runs entirely on **GitHub Actions** — free forever, no credit card, no server 
 
 1. Create a new Gmail account (e.g. `hajobmonitor@gmail.com`)
 2. Go to **Security** → turn on **2-Step Verification**
-3. Search for **App passwords** → name it `HA Job Monitor` → click **Generate**
+3. Search for **App passwords** → name it `Job Monitor` → click **Generate**
 4. Copy the 16-character password shown — you'll need it shortly
 
 ---
@@ -31,7 +31,7 @@ Runs entirely on **GitHub Actions** — free forever, no credit card, no server 
 ### Step 2 — Put the files on GitHub
 
 1. Go to [github.com](https://github.com) and sign in (or sign up free)
-2. Click **+** → **New repository** → name it `ha-job-monitor` → **Create repository**
+2. Click **+** → **New repository** → name it `job-monitor` → **Create repository**
 3. Click **uploading an existing file** and upload these 3 files:
    - `scraper.py`
    - `requirements.txt`
@@ -61,7 +61,7 @@ Your Gmail credentials are stored as **Secrets** — encrypted, never visible to
 ### Step 4 — Test it manually
 
 1. In your repo, click the **Actions** tab
-2. Click **HA Job Monitor** on the left
+2. Click **Job Monitor** on the left
 3. Click **Run workflow** → **Run workflow**
 4. Watch it run — green tick means success ✅
 5. Check your inbox — first run saves all current jobs, won't email you. From then on, new pharmacist jobs trigger an alert.
